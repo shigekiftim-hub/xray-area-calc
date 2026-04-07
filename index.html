@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>X線防護工事 平米計算ツール</title>
+<style>
+:root {
+  --primary: #1e40af;
+  --primary-light: #3b82f6;
+  --surface: #ffffff;
+  --bg: #f1f5f9;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --muted: #64748b;
+  --success: #16a34a;
+  --danger: #dc2626;
+  --warn-bg: #fefce8;
+  --warn-border: #fcd34d;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+header {
+  background: var(--primary);
+  color: #fff;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+header h1 { font-size: 16px; font-weight: 700; letter-spacing: 0.3px; }
+header .sub { font-size: 11px; opacity: 0.75; margin-left: auto; }
+
+
+.app-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  flex: 1;
+  overflow: hidden;
+  padding: 12px;
+  gap: 12px;
+}
+
+/* ====== Panel ====== */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.panel-head {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: #f8fafc;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+/* ====== Upload ====== */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  height: 100%;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--muted);
+}
+.upload-zone:hover, .upload-zone.over {
+  border-color: var(--primary-light);
+  background: #eff6ff;
+}
+.upload-zone .icon { font-size: 44px; opacity: 0.35; }
+.upload-zone .label { font-weight: 600; font-size: 14px; color: var(--text); }
+.upload-zone .sub { font-size: 12px; }
+
+.viewer-wrap {
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  display: none;
+}
+.viewer-wrap img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  border-radius: 4px;
+}
+.viewer-wrap embed, .viewer-wrap iframe {
+  width: 100%; height: 100%;
+  border: none; border-radius: 4px;
+}
+
+/* ====== Tabs ====== */
+.tabs {
+  display: flex;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border);
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+.tab-btn {
+  padding: 9px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.15s;
+}
+.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+.tab-pane { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+.tab-pane.active { display: flex; }
+
+/* ====== Buttons ====== */
+.btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  border: none; border-radius: 6px; padding: 7px 13px;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: all 0.15s; white-space: nowrap;
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: #1e3a8a; }
+.btn-outline { background: #fff; color: var(--text); border: 1px solid var(--border); }
+.btn-outline:hover { background: var(--bg); }
+.btn-ghost { background: none; color: var(--muted); border: 1px dashed var(--border); }
+.btn-ghost:hover { color: var(--primary); border-color: var(--primary); background: #eff6ff; }
+.btn-danger { background: #fff; color: var(--danger); border: 1px solid #fecaca; }
+.btn-danger:hover { background: #fef2f2; }
+.btn-sm { padding: 4px 9px; font-size: 11px; }
+.btn-success { background: var(--success); color: #fff; }
+.btn-success:hover { background: #15803d; }
+
+/* ====== Room Card ====== */
+.room-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.room-card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 12px;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.room-card-head .room-label { font-weight: 700; font-size: 13px; }
+.room-card-body { padding: 12px; }
+
+/* ====== Form ====== */
+.row {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.row-2 { grid-template-columns: 1fr 1fr; }
+.row-3 { grid-template-columns: 1fr 1fr 1fr; }
+.row-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+.field { display: flex; flex-direction: column; gap: 3px; }
+.field label {
+  font-size: 10px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.4px;
+}
+.field input, .field select {
+  border: 1px solid var(--border); border-radius: 5px;
+  padding: 5px 8px; font-size: 12px;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+.field input:focus, .field select:focus {
+  outline: none; border-color: var(--primary-light);
+  box-shadow: 0 0 0 2px #bfdbfe40;
+}
+
+.radio-row { display: flex; gap: 14px; align-items: center; margin-bottom: 8px; }
+.radio-row label { display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 12px; }
+.radio-row input[type=radio] { accent-color: var(--primary); }
+
+.section-divider {
+  border-top: 1px solid var(--border);
+  margin: 10px 0 8px;
+  padding-top: 8px;
+}
+.section-label {
+  font-size: 10px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px;
+}
+
+/* ====== Door Items ====== */
+.door-item {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: 6px; align-items: end;
+  padding: 6px 8px;
+  background: #f8fafc;
+  border-radius: 5px;
+  margin-bottom: 5px;
+  border: 1px solid var(--border);
+}
+
+/* ====== Bottom bar ====== */
+.panel-footer {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  display: flex; gap: 8px; align-items: center;
+  flex-shrink: 0;
+  background: #f8fafc;
+}
+
+/* ====== Note ====== */
+.note {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 11px; color: #78350f;
+  margin-bottom: 10px;
+}
+.note strong { color: #92400e; }
+
+/* ====== Results ====== */
+.result-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 14px;
+}
+.result-table th {
+  background: #f1f5f9;
+  padding: 7px 10px;
+  text-align: left; font-size: 11px; font-weight: 700;
+  color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px;
+  border-bottom: 2px solid var(--border);
+}
+.result-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.result-table tr:last-child td { border-bottom: none; }
+.result-table tr:hover td { background: #f8fafc; }
+.num { font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; }
+.tag {
+  display: inline-block; padding: 1px 7px; border-radius: 20px;
+  font-size: 10px; font-weight: 700;
+}
+.tag-blue { background: #dbeafe; color: #1e40af; }
+.tag-green { background: #dcfce7; color: #166534; }
+.tag-gray { background: #f1f5f9; color: var(--muted); }
+
+.formula-block {
+  background: var(--code-bg);
+  color: var(--code-text);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 11.5px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  margin-bottom: 14px;
+  cursor: text;
+  outline: none;
+}
+.formula-block:focus {
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+.formula-room-title {
+  font-weight: 700; font-size: 12px;
+  margin: 6px 0 4px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.empty-state {
+  text-align: center; padding: 40px 20px;
+  color: var(--muted);
+}
+.empty-state .icon { font-size: 36px; margin-bottom: 8px; opacity: 0.5; }
+.empty-state .label { font-weight: 600; font-size: 14px; }
+
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: #1e293b; color: #fff; padding: 8px 18px;
+  border-radius: 20px; font-size: 12px; font-weight: 600;
+  opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999;
+}
+.toast.show { opacity: 1; }
+
+input[type=number]::-webkit-inner-spin-button { opacity: 0.5; }
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+  <h1>X線防護工事 平米計算ツール</h1>
+  <span class="sub">鉛ボード面積自動算出</span>
+</header>
+
+<div class="app-body">
+
+  <!-- LEFT: Floor Plan -->
+  <div class="panel">
+    <div class="panel-head">
+      <span>平面図</span>
+      <button class="btn btn-sm btn-danger" id="clearBtn" style="display:none" onclick="clearFile()">クリア</button>
+    </div>
+    <div class="panel-body" style="padding:10px; overflow:hidden;">
+      <div id="uploadZone" class="upload-zone"
+           onclick="document.getElementById('fileInput').click()"
+           ondragover="onDragOver(event)" ondrop="onDrop(event)" ondragleave="onDragLeave(event)">
+        <div class="icon">📐</div>
+        <div class="label">平面図をドロップ</div>
+        <div class="sub">または クリックして選択</div>
+        <div class="sub" style="font-size:11px; margin-top:4px;">PDF / PNG / JPG 対応</div>
+      </div>
+      <div id="viewerWrap" class="viewer-wrap"></div>
+    </div>
+    <div class="panel-footer" style="flex-direction:column;gap:8px;align-items:stretch;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div class="field" style="flex:1;">
+          <label>Claude API Key（自動読み取り用）</label>
+          <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." oninput="localStorage.setItem('xray_apikey',this.value)">
+        </div>
+      </div>
+      <button id="aiReadBtn" class="btn btn-primary" style="display:none;width:100%;justify-content:center;opacity:0.45;cursor:not-allowed;" disabled title="準備中">
+        🤖 AIで寸法を自動読み取り（準備中）
+      </button>
+    </div>
+    <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg" style="display:none" onchange="onFileSelect(event)">
+  </div>
+
+  <!-- RIGHT: Input + Results -->
+  <div class="panel">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="showTab('input', this)">部屋情報入力</button>
+      <button class="tab-btn" onclick="showTab('results', this)">計算結果</button>
+    </div>
+
+    <!-- INPUT TAB -->
+    <div id="tab-input" class="tab-pane active">
+      <div class="panel-body" id="roomsBody">
+        <div class="note">
+          💡 寸法は<strong>芯々（壁中心〜中心）</strong>で入力（mm）。天井高(CH)のみ内寸。
+        </div>
+        <div id="noRooms" class="empty-state">
+          <div class="icon">🏥</div>
+          <div class="label">部屋が追加されていません</div>
+          <div style="font-size:12px; margin-top:4px;">下のボタンから部屋を追加してください</div>
+        </div>
+        <div id="roomList"></div>
+      </div>
+      <div class="panel-footer">
+        <button class="btn btn-ghost" onclick="addRoom()">＋ 部屋を追加</button>
+        <button class="btn btn-primary" style="margin-left:auto;" onclick="runCalc()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 7H6a2 2 0 00-2 2v9a2 2 0 002 2h9a2 2 0 002-2v-3M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m0 0h3a2 2 0 012 2v3"/></svg>
+          計算実行
+        </button>
+      </div>
+    </div>
+
+    <!-- RESULTS TAB -->
+    <div id="tab-results" class="tab-pane">
+      <div class="panel-body" id="resultsBody">
+        <div class="empty-state">
+          <div class="icon">📊</div>
+          <div class="label">計算結果がここに表示されます</div>
+          <div style="font-size:12px; margin-top:4px;">部屋情報を入力して「計算実行」を押してください</div>
+        </div>
+      </div>
+      <div class="panel-footer">
+        <button class="btn btn-outline" onclick="copyFormulas()">📋 計算式をコピー</button>
+        <button class="btn btn-outline btn-sm" onclick="copyTable()">📋 表をコピー</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===================== State =====================
+let roomSeq = 0;
+let doorSeq = 0;
+let currentFile = null;
+
+// ===================== Unit Helpers =====================
+const toM = v => Math.ceil(v / 10) / 100;
+
+// Restore API key + auto-add first room
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('xray_apikey');
+  if (saved) document.getElementById('apiKeyInput').value = saved;
+  addRoom();
+});
+
+// ===================== File Handling =====================
+function onDragOver(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.add('over');
+}
+function onDragLeave(e) {
+  document.getElementById('uploadZone').classList.remove('over');
+}
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('over');
+  if (e.dataTransfer.files[0]) showFile(e.dataTransfer.files[0]);
+}
+function onFileSelect(e) {
+  if (e.target.files[0]) showFile(e.target.files[0]);
+}
+function showFile(file) {
+  currentFile = file;
+  const url = URL.createObjectURL(file);
+  const wrap = document.getElementById('viewerWrap');
+  wrap.innerHTML = '';
+  if (file.type === 'application/pdf') {
+    const em = document.createElement('embed');
+    em.src = url; em.type = 'application/pdf';
+    em.style.cssText = 'width:100%;height:100%;';
+    wrap.appendChild(em);
+  } else {
+    const img = document.createElement('img');
+    img.src = url;
+    wrap.appendChild(img);
+  }
+  document.getElementById('uploadZone').style.display = 'none';
+  wrap.style.display = 'block';
+  document.getElementById('clearBtn').style.display = 'inline-flex';
+  document.getElementById('aiReadBtn').style.display = 'flex';
+}
+function clearFile() {
+  currentFile = null;
+  document.getElementById('uploadZone').style.display = 'flex';
+  document.getElementById('viewerWrap').style.display = 'none';
+  document.getElementById('clearBtn').style.display = 'none';
+  document.getElementById('aiReadBtn').style.display = 'none';
+  document.getElementById('fileInput').value = '';
+}
+
+// ===================== Tab =====================
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ===================== Room Management =====================
+function addRoom() {
+  const id = ++roomSeq;
+  document.getElementById('noRooms').style.display = 'none';
+
+  const div = document.createElement('div');
+  div.className = 'room-card';
+  div.id = 'room-' + id;
+  div.innerHTML = buildRoomHTML(id);
+  document.getElementById('roomList').appendChild(div);
+}
+
+function buildRoomHTML(id) {
+  return `
+  <div class="room-card-head" onclick="toggleRoom(${id})">
+    <span class="room-label" id="rlabel-${id}">新しい部屋</span>
+    <div style="display:flex;gap:6px;align-items:center;" onclick="event.stopPropagation()">
+      <button class="btn btn-sm btn-danger" onclick="removeRoom(${id})">✕ 削除</button>
+    </div>
+  </div>
+  <div class="room-card-body" id="rbody-${id}">
+
+    <div class="row row-3">
+      <div class="field" style="grid-column:span 2;">
+        <label>部屋名</label>
+        <input type="text" id="r-name-${id}" placeholder="例：X線室" oninput="updateLabel(${id})">
+      </div>
+      <div class="field">
+        <label>必要鉛当量 (mm)</label>
+        <input type="number" id="r-lead-${id}" placeholder="例：1.5" step="0.5" min="0">
+      </div>
+    </div>
+
+    <div class="row row-3">
+      <div class="field">
+        <label>天井高 CH (mm)</label>
+        <input type="number" id="r-ch-${id}" placeholder="例：2400" step="10" min="0">
+      </div>
+      <div class="field">
+        <label>x / 奥行 (mm) ※芯々</label>
+        <input type="number" id="r-x-${id}" placeholder="例：5000" step="10" min="0">
+      </div>
+      <div class="field">
+        <label>y / 幅 (mm) ※芯々</label>
+        <input type="number" id="r-y-${id}" placeholder="例：4000" step="10" min="0">
+      </div>
+    </div>
+
+    <div class="row row-2">
+      <div class="field">
+        <label>天井コンクリート厚 (mm)</label>
+        <input type="number" id="r-conc-ceil-${id}" placeholder="0 = ボード必要" step="50" min="0" value="0">
+      </div>
+      <div class="field">
+        <label>床コンクリート厚 (mm)</label>
+        <input type="number" id="r-conc-floor-${id}" placeholder="0 = ボード必要" step="50" min="0" value="0">
+      </div>
+    </div>
+
+    <div style="margin-bottom:8px;">
+      <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px;">計算方法</label>
+      <div class="radio-row">
+        <label>
+          <input type="radio" name="ctype-${id}" value="same" checked onchange="onCalcTypeChange(${id})">
+          壁面鉛当量が同じ
+        </label>
+        <label>
+          <input type="radio" name="ctype-${id}" value="irrad" onchange="onCalcTypeChange(${id})">
+          照射面(B面)あり
+        </label>
+      </div>
+    </div>
+
+    <div id="r-irrad-note-${id}" class="note" style="display:none;">
+      💡 <strong>照射面(B面)</strong>：照射方向の1面を選択してください。<br>
+      一般壁 = 残り3面、照射面 = 選択した1面
+    </div>
+
+    <div id="r-irrad-face-wrap-${id}" style="display:none;margin-bottom:8px;">
+      <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px;">照射面の方向</label>
+      <div class="radio-row">
+        <label>
+          <input type="radio" name="iface-${id}" value="y" checked>
+          y方向（幅面）
+        </label>
+        <label>
+          <input type="radio" name="iface-${id}" value="x">
+          x方向（奥行面）
+        </label>
+      </div>
+    </div>
+
+    <!-- DOORS (same mode) -->
+    <div id="doors-same-wrap-${id}">
+      <div class="section-divider">
+        <div class="section-label">建具（ドア・窓）</div>
+        <div id="doors-same-${id}"></div>
+        <button class="btn btn-ghost btn-sm" onclick="addDoor(${id}, 'same')">＋ 建具を追加</button>
+      </div>
+    </div>
+
+    <!-- DOORS (irrad mode) -->
+    <div id="doors-irrad-wrap-${id}" style="display:none;">
+      <div class="section-divider">
+        <div class="section-label">一般壁の建具</div>
+        <div id="doors-wall-${id}"></div>
+        <button class="btn btn-ghost btn-sm" onclick="addDoor(${id}, 'wall')">＋ 一般壁に建具追加</button>
+      </div>
+      <div class="section-divider">
+        <div class="section-label">照射面(B面)の建具</div>
+        <div id="doors-irr-${id}"></div>
+        <button class="btn btn-ghost btn-sm" onclick="addDoor(${id}, 'irr')">＋ B面に建具追加</button>
+      </div>
+    </div>
+
+  </div>
+  `;
+}
+
+function toggleRoom(id) {
+  const body = document.getElementById('rbody-' + id);
+  body.style.display = body.style.display === 'none' ? 'block' : 'none';
+}
+
+function removeRoom(id) {
+  document.getElementById('room-' + id).remove();
+  if (document.getElementById('roomList').children.length === 0) {
+    document.getElementById('noRooms').style.display = 'flex';
+  }
+}
+
+function updateLabel(id) {
+  const val = document.getElementById('r-name-' + id).value;
+  document.getElementById('rlabel-' + id).textContent = val || '新しい部屋';
+}
+
+function onCalcTypeChange(id) {
+  const type = document.querySelector(`input[name="ctype-${id}"]:checked`).value;
+  const isIrrad = type === 'irrad';
+  document.getElementById('doors-same-wrap-' + id).style.display = isIrrad ? 'none' : 'block';
+  document.getElementById('doors-irrad-wrap-' + id).style.display = isIrrad ? 'block' : 'none';
+  document.getElementById('r-irrad-note-' + id).style.display = isIrrad ? 'block' : 'none';
+  document.getElementById('r-irrad-face-wrap-' + id).style.display = isIrrad ? 'block' : 'none';
+}
+
+// ===================== Door Management =====================
+function addDoor(roomId, section) {
+  const did = ++doorSeq;
+  const targetId = `doors-${section}-${roomId}`;
+  const container = document.getElementById(targetId);
+
+  const div = document.createElement('div');
+  div.className = 'door-item';
+  div.id = `door-${roomId}-${section}-${did}`;
+  div.innerHTML = `
+    <div class="field">
+      <label>名称</label>
+      <input type="text" id="dn-${roomId}-${section}-${did}" placeholder="ドア">
+    </div>
+    <div class="field">
+      <label>幅 W (mm)</label>
+      <input type="number" id="dw-${roomId}-${section}-${did}" value="800" step="10" min="0">
+    </div>
+    <div class="field">
+      <label>高さ H (mm)</label>
+      <input type="number" id="dh-${roomId}-${section}-${did}" value="2000" step="10" min="0">
+    </div>
+    <div style="display:flex;align-items:flex-end;padding-bottom:2px;">
+      <button class="btn btn-danger btn-sm" onclick="removeDoor('${roomId}-${section}-${did}')">✕</button>
+    </div>
+  `;
+  container.appendChild(div);
+}
+
+function removeDoor(key) {
+  document.getElementById('door-' + key).remove();
+}
+
+// ===================== Calculation =====================
+const R2U = v => Math.ceil(v * 100) / 100;   // 繰上げ (ceiling) at 2dp
+const R2D = v => Math.floor(v * 100) / 100;  // 切捨て (floor) at 2dp
+const R2H = v => Math.round(v * 100) / 100;  // 四捨五入 at 2dp
+const F2 = v => (v ?? 0).toFixed(2);
+const F3 = v => (v ?? 0).toFixed(3);
+const concreteLeadEq = mm => mm / 100; // 100mm = 1.0mm lead eq
+
+function getDoors(roomId, section) {
+  const container = document.getElementById(`doors-${section}-${roomId}`);
+  if (!container) return [];
+  const items = container.querySelectorAll('.door-item');
+  const doors = [];
+  items.forEach(el => {
+    const key = el.id.replace('door-', '');
+    const w = toM(parseFloat(document.getElementById(`dw-${key}`)?.value) || 0);
+    const h = toM(parseFloat(document.getElementById(`dh-${key}`)?.value) || 0);
+    const name = document.getElementById(`dn-${key}`)?.value || 'ドア';
+    if (w > 0 && h > 0) doors.push({ name, w, h });
+  });
+  return doors;
+}
+
+function calcDoorDeduction(doors) {
+  // Each door: R2D(w*h), sum them
+  let total = 0;
+  doors.forEach(d => { total += R2D(d.w * d.h); });
+  return total;
+}
+
+function runCalc() {
+  const cards = document.querySelectorAll('.room-card');
+  if (cards.length === 0) {
+    showToast('部屋を追加してください');
+    return;
+  }
+
+  const results = [];
+
+  cards.forEach(card => {
+    const m = card.id.match(/^room-(\d+)$/);
+    if (!m) return;
+    const id = m[1];
+
+    const name     = document.getElementById(`r-name-${id}`)?.value || `部屋${id}`;
+    const ch       = toM(parseFloat(document.getElementById(`r-ch-${id}`)?.value) || 0);
+    const x        = toM(parseFloat(document.getElementById(`r-x-${id}`)?.value) || 0);
+    const y        = toM(parseFloat(document.getElementById(`r-y-${id}`)?.value) || 0);
+    const leadEq   = parseFloat(document.getElementById(`r-lead-${id}`)?.value) || 0;
+    const concCeil = parseFloat(document.getElementById(`r-conc-ceil-${id}`)?.value) || 0;
+    const concFloor= parseFloat(document.getElementById(`r-conc-floor-${id}`)?.value) || 0;
+    const ctype    = document.querySelector(`input[name="ctype-${id}"]:checked`)?.value || 'same';
+
+    if (ch <= 0 || x <= 0 || y <= 0) {
+      results.push({ name, error: 'CH・x・y の寸法を入力してください' });
+      return;
+    }
+
+    // Ceiling / Floor concrete check
+    const ceilLeadEq  = concreteLeadEq(concCeil);
+    const floorLeadEq = concreteLeadEq(concFloor);
+    const needCeil  = leadEq <= 0 || ceilLeadEq < leadEq;
+    const needFloor = leadEq <= 0 || floorLeadEq < leadEq;
+    const remainCeil  = needCeil  ? Math.max(0, leadEq - ceilLeadEq) : 0;
+    const remainFloor = needFloor ? Math.max(0, leadEq - floorLeadEq) : 0;
+
+    const ceilArea  = needCeil  ? R2U(x * y) : 0;
+    const floorArea = needFloor ? R2U(x * y) : 0;
+
+    const L = (text, underline = false) => ({ text, underline });
+    const lines = [];
+    const excelData = [];
+    lines.push(L(`【${name}】`));
+    if (leadEq > 0) lines.push(L(`必要鉛当量: ${leadEq}mm  CH: ${F3(ch)}m  奥行x: ${F3(x)}m  幅y: ${F3(y)}m`));
+    else            lines.push(L(`CH: ${F3(ch)}m  奥行x: ${F3(x)}m  幅y: ${F3(y)}m`));
+    lines.push(L(''));
+
+    let wall = 0, wallB = 0, irradWall = 0;
+
+    if (ctype === 'same') {
+      // 壁面鉛当量が同じの場合
+      const doors = getDoors(id, 'same');
+      const wallRaw  = ch * (x + y) * 2;
+      const wallBoard= R2U(wallRaw);
+      const doorDed  = calcDoorDeduction(doors);
+      wall = R2H(wallBoard - doorDed);
+
+      excelData.push({ label: '壁面(繰上前)', expr: `${ch}*(${x}+${y})*2`, raw: wallRaw, rounded: wallBoard, method: 'ROUNDUP' });
+      doors.forEach(d => excelData.push({ label: `建具 ${d.name}`, expr: `${d.w}*${d.h}`, raw: d.w*d.h, rounded: R2D(d.w*d.h), method: 'ROUNDDOWN' }));
+      excelData.push({ label: '壁面合計', expr: `${wallBoard}-${doorDed}`, raw: wallBoard-doorDed, rounded: wall, method: 'ROUND' });
+
+      lines.push(L(`■ 壁面（全周）`));
+      lines.push(L(`  CH${F3(ch)} × (x${F3(x)} + y${F3(y)}) × 2 = ${F3(wallRaw)} → ${F2(wallBoard)}㎡（繰上）`));
+      if (doors.length > 0) {
+        lines.push(L(`  ▼ 建具控除`));
+        doors.forEach(d => {
+          const da = R2D(d.w * d.h);
+          lines.push(L(`    ${d.name}: ${F3(d.w)} × ${F3(d.h)} = ${F3(d.w*d.h)} → ${F2(da)}㎡（切捨）`));
+        });
+        lines.push(L(`  壁面 = ${F2(wallBoard)} - ${F2(doorDed)} = ${F2(wall)}㎡`, true));
+      } else {
+        lines.push(L(`  壁面 = ${F2(wall)}㎡（建具なし）`, true));
+      }
+
+    } else {
+      // 照射面(B面)あり
+      const iface = document.querySelector(`input[name="iface-${id}"]:checked`)?.value || 'y';
+      const irradDim = iface === 'x' ? x : y;
+      const otherDim = iface === 'x' ? y : x;
+      const irradLabel = iface === 'x' ? `x${F3(irradDim)}` : `y${F3(irradDim)}`;
+      const otherLabel = iface === 'x' ? `y${F3(otherDim)}` : `x${F3(otherDim)}`;
+
+      const wallDoors = getDoors(id, 'wall');
+      const irradDoors= getDoors(id, 'irr');
+
+      const wallRaw   = ch * (otherDim * 2 + irradDim);
+      const wallBoard = R2U(wallRaw);
+      const wallDed   = calcDoorDeduction(wallDoors);
+      wall = R2H(wallBoard - wallDed);
+
+      const irradRaw  = ch * irradDim;
+      const irradBoard= R2U(irradRaw);
+      const irradDed  = calcDoorDeduction(irradDoors);
+      irradWall = R2H(irradBoard - irradDed);
+      wallB = irradWall;
+
+      excelData.push({ label: '一般壁面(繰上前)', expr: `${ch}*(${otherDim}*2+${irradDim})`, raw: wallRaw, rounded: wallBoard, method: 'ROUNDUP' });
+      wallDoors.forEach(d => excelData.push({ label: `建具(一般壁) ${d.name}`, expr: `${d.w}*${d.h}`, raw: d.w*d.h, rounded: R2D(d.w*d.h), method: 'ROUNDDOWN' }));
+      excelData.push({ label: '一般壁合計', expr: `${wallBoard}-${wallDed}`, raw: wallBoard-wallDed, rounded: wall, method: 'ROUND' });
+      excelData.push({ label: `照射面[${iface}方向](繰上前)`, expr: `${ch}*${irradDim}`, raw: irradRaw, rounded: irradBoard, method: 'ROUNDUP' });
+      irradDoors.forEach(d => excelData.push({ label: `建具(照射面) ${d.name}`, expr: `${d.w}*${d.h}`, raw: d.w*d.h, rounded: R2D(d.w*d.h), method: 'ROUNDDOWN' }));
+      excelData.push({ label: '照射面合計', expr: `${irradBoard}-${irradDed}`, raw: irradBoard-irradDed, rounded: irradWall, method: 'ROUND' });
+
+      lines.push(L(`■ 一般壁面`));
+      lines.push(L(`  CH${F3(ch)} × (${otherLabel}×2 + ${irradLabel}) = ${F3(wallRaw)} → ${F2(wallBoard)}㎡（繰上）`));
+      if (wallDoors.length > 0) {
+        lines.push(L(`  ▼ 建具控除`));
+        wallDoors.forEach(d => {
+          const da = R2D(d.w * d.h);
+          lines.push(L(`    ${d.name}: ${F3(d.w)} × ${F3(d.h)} = ${F3(d.w*d.h)} → ${F2(da)}㎡（切捨）`));
+        });
+        lines.push(L(`  一般壁 = ${F2(wallBoard)} - ${F2(wallDed)} = ${F2(wall)}㎡`, true));
+      } else {
+        lines.push(L(`  一般壁 = ${F2(wall)}㎡（建具なし）`, true));
+      }
+      lines.push(L(''));
+      lines.push(L(`■ 照射面(B面) [${iface}方向]`));
+      lines.push(L(`  CH${F3(ch)} × ${irradLabel} = ${F3(irradRaw)} → ${F2(irradBoard)}㎡（繰上）`));
+      if (irradDoors.length > 0) {
+        lines.push(L(`  ▼ 建具控除`));
+        irradDoors.forEach(d => {
+          const da = R2D(d.w * d.h);
+          lines.push(L(`    ${d.name}: ${F3(d.w)} × ${F3(d.h)} = ${F3(d.w*d.h)} → ${F2(da)}㎡（切捨）`));
+        });
+        lines.push(L(`  照射面 = ${F2(irradBoard)} - ${F2(irradDed)} = ${F2(irradWall)}㎡`, true));
+      } else {
+        lines.push(L(`  照射面 = ${F2(irradWall)}㎡（建具なし）`, true));
+      }
+    }
+
+    lines.push(L(''));
+    lines.push(L(`■ 天井面`));
+    if (needCeil) {
+      excelData.push({ label: '天井面', expr: `${x}*${y}`, raw: x*y, rounded: ceilArea, method: 'ROUNDUP' });
+      lines.push(L(`  x${F3(x)} × y${F3(y)} = ${F3(x*y)} → ${F2(ceilArea)}㎡（繰上）`, true));
+      if (concCeil > 0) lines.push(L(`  ※コンクリート${concCeil}mm(鉛当量${F2(ceilLeadEq)}mm) → 残り${F2(remainCeil)}mm分ボード要`));
+    } else {
+      lines.push(L(`  コンクリート${concCeil}mm(鉛当量${F2(ceilLeadEq)}mm ≥ 必要${leadEq}mm) → ボード不要`));
+    }
+
+    lines.push(L(''));
+    lines.push(L(`■ 床面`));
+    if (needFloor) {
+      excelData.push({ label: '床面', expr: `${x}*${y}`, raw: x*y, rounded: floorArea, method: 'ROUNDUP' });
+      lines.push(L(`  ${F3(x)} × ${F3(y)} = ${F3(x*y)} → ${F2(floorArea)}㎡（繰上）`, true));
+      if (concFloor > 0) lines.push(L(`  ※コンクリート${concFloor}mm(鉛当量${F2(floorLeadEq)}mm) → 残り${F2(remainFloor)}mm分ボード要`));
+    } else {
+      lines.push(L(`  コンクリート${concFloor}mm(鉛当量${F2(floorLeadEq)}mm ≥ 必要${leadEq}mm) → ボード不要`));
+    }
+
+    results.push({
+      name, ctype, wall, wallB, ceilArea, floorArea,
+      needCeil, needFloor,
+      formula: lines,
+      excelData,
+      leadEq, concCeil, concFloor
+    });
+  });
+
+  renderResults(results);
+  // Switch to results tab
+  document.querySelectorAll('.tab-btn')[1].click();
+}
+
+function renderResults(results) {
+  window._results = results;
+  const body = document.getElementById('resultsBody');
+
+  if (!results.length) {
+    body.innerHTML = '<div class="empty-state"><div class="icon">📊</div><div>結果なし</div></div>';
+    return;
+  }
+
+  let html = `<table class="result-table">
+    <thead><tr>
+      <th>部屋名</th>
+      <th>壁面 (㎡)</th>
+      <th>照射面B (㎡)</th>
+      <th>天井 (㎡)</th>
+      <th>床 (㎡)</th>
+    </tr></thead><tbody>`;
+
+  results.forEach(r => {
+    if (r.error) {
+      html += `<tr><td><strong>${esc(r.name)}</strong></td><td colspan="4" style="color:var(--danger);">${esc(r.error)}</td></tr>`;
+      return;
+    }
+    const ceilCell  = r.needCeil  ? `<span class="num">${F3(r.ceilArea)}</span>` : `<span class="tag tag-gray">不要</span>`;
+    const floorCell = r.needFloor ? `<span class="num">${F3(r.floorArea)}</span>` : `<span class="tag tag-gray">不要</span>`;
+    const irradCell = r.ctype === 'irrad' ? `<span class="num">${F3(r.wallB)}</span>` : '—';
+    html += `<tr>
+      <td><strong>${esc(r.name)}</strong><br><span class="tag ${r.ctype==='irrad'?'tag-blue':'tag-green'}" style="margin-top:2px;">${r.ctype==='irrad'?'照射面あり':'同一鉛当量'}</span></td>
+      <td class="num">${F3(r.wall)}</td>
+      <td>${irradCell}</td>
+      <td>${ceilCell}</td>
+      <td>${floorCell}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+
+  results.forEach((r, ri) => {
+    if (!r.error) {
+      const fHtml = r.formula.map(item => {
+        const t = esc(item.text);
+        return item.underline ? `<u>${t}</u>` : t;
+      }).join('\n');
+      html += `<div class="formula-room-title">
+        ${esc(r.name)} — 計算式
+        <button class="btn btn-outline btn-sm" style="margin-left:auto;font-size:10px;" onclick="copyExcel(${ri})">📊 Excel用コピー</button>
+      </div>
+      <div class="formula-block" contenteditable="true" spellcheck="false" data-ri="${ri}">${fHtml}</div>`;
+    }
+  });
+
+  body.innerHTML = html;
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ===================== Copy =====================
+function copyFormulas() {
+  if (!window._results) { showToast('先に計算を実行してください'); return; }
+  const text = window._results
+    .filter(r => !r.error && r.formula)
+    .map(r => r.formula.map(item => item.text).join('\n'))
+    .join('\n\n' + '─'.repeat(50) + '\n\n');
+  navigator.clipboard.writeText(text).then(() => showToast('計算式をコピーしました ✓'));
+}
+
+function copyTable() {
+  if (!window._results) { showToast('先に計算を実行してください'); return; }
+  const header = '部屋名\t壁面(㎡)\t照射面B(㎡)\t天井(㎡)\t床(㎡)';
+  const rows = window._results
+    .filter(r => !r.error)
+    .map(r => [
+      r.name,
+      F3(r.wall),
+      r.ctype === 'irrad' ? F3(r.wallB) : '—',
+      r.needCeil  ? F3(r.ceilArea)  : '不要',
+      r.needFloor ? F3(r.floorArea) : '不要'
+    ].join('\t'));
+  navigator.clipboard.writeText([header, ...rows].join('\n')).then(() => showToast('表をコピーしました ✓'));
+}
+
+// ===================== Excel Copy =====================
+function copyExcel(ri) {
+  const r = window._results && window._results[ri];
+  if (!r || !r.excelData) { showToast('データがありません'); return; }
+
+  const header = '項目\t計算内容\t計算前\t結果(㎡)\t検算式';
+  const rows = r.excelData.map(d => {
+    const colC = d.raw.toFixed(3);
+    const colD = d.rounded.toFixed(2);
+    // Generate Excel ROUNDUP/ROUNDDOWN/ROUND formula referencing col C
+    const fnMap = { ROUNDUP: 'ROUNDUP', ROUNDDOWN: 'ROUNDDOWN', ROUND: 'ROUND' };
+    const fn = fnMap[d.method] || 'ROUND';
+    const exprClean = d.expr.replace(/\*/g, '*');
+    const checkFormula = `=${fn}(${exprClean},2)`;
+    return `${d.label}\t${d.expr}\t${colC}\t${colD}\t${checkFormula}`;
+  });
+
+  const tsv = [header, ...rows].join('\r\n');
+  navigator.clipboard.writeText(tsv).then(() => showToast('Excel用データをコピーしました ✓'));
+}
+
+// ===================== Toast =====================
+// ===================== AI Auto-Extract =====================
+async function aiExtract() {
+  if (!currentFile) { showToast('先に平面図をアップロードしてください'); return; }
+  const apiKey = document.getElementById('apiKeyInput').value.trim();
+  if (!apiKey) { showToast('Claude API Keyを入力してください'); return; }
+
+  const btn = document.getElementById('aiReadBtn');
+  btn.textContent = '🔄 読み取り中...';
+  btn.disabled = true;
+
+  try {
+    const base64 = await fileToBase64(currentFile);
+    const isPdf = currentFile.type === 'application/pdf';
+
+    const sourceBlock = isPdf
+      ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
+      : { type: 'image',    source: { type: 'base64', media_type: currentFile.type,   data: base64 } };
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-6',
+        max_tokens: 2048,
+        messages: [{
+          role: 'user',
+          content: [
+            sourceBlock,
+            { type: 'text', text:
+`この平面図からX線室・レントゲン室の各部屋の寸法を読み取ってください。
+芯々寸法（壁の中心から中心）をmm単位で抽出し、以下のJSON形式のみ返答してください。
+
+{
+  "rooms": [
+    {
+      "name": "部屋名",
+      "ch": 天井高mm（記載なければnull）,
+      "x": 奥行きmm（芯々）またはnull,
+      "y": 幅mm（芯々）またはnull
+    }
+  ]
+}` }
+          ]
+        }]
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const text = data.content[0].text;
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('JSONを取得できませんでした');
+
+    const parsed = JSON.parse(match[0]);
+    let count = 0;
+    parsed.rooms.forEach(room => {
+      addRoom();
+      const id = roomSeq;
+      if (room.name) { document.getElementById(`r-name-${id}`).value = room.name; updateLabel(id); }
+      if (room.ch)   document.getElementById(`r-ch-${id}`).value = room.ch;
+      if (room.x)    document.getElementById(`r-x-${id}`).value = room.x;
+      if (room.y)    document.getElementById(`r-y-${id}`).value = room.y;
+      count++;
+    });
+    showToast(`${count}部屋の寸法を読み取りました ✓`);
+  } catch (e) {
+    showToast('エラー: ' + e.message);
+  } finally {
+    btn.textContent = '🤖 AIで寸法を自動読み取り';
+    btn.disabled = false;
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+</script>
+</body>
+</html>
