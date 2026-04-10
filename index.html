@@ -51,13 +51,34 @@ header .sub { font-size: 11px; opacity: 0.75; margin-left: auto; }
 
 .app-body {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
+  grid-template-columns: 1fr 220px;
   flex: 1;
   overflow: hidden;
   padding: 12px;
   gap: 12px;
 }
+.main-panel { grid-column: 1; }
+.floor-panel { grid-column: 2; }
+.dev-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: #fef3c7; color: #92400e;
+  border: 1px solid #fcd34d; border-radius: 4px;
+  padding: 1px 7px; font-size: 10px; font-weight: 700;
+}
+.history-entry {
+  border: 1px solid var(--border); border-radius: 8px;
+  margin-bottom: 8px; overflow: hidden;
+}
+.history-head {
+  padding: 9px 12px; background: #f8fafc; cursor: pointer;
+  display: flex; align-items: center; gap: 8px; font-size: 12px;
+  user-select: none;
+}
+.history-head:hover { background: #f1f5f9; }
+.history-ts { font-size: 10px; color: var(--muted); font-weight: 600; white-space: nowrap; }
+.history-rooms { flex: 1; font-weight: 600; }
+.history-body { padding: 10px 12px; border-top: 1px solid var(--border); display: none; }
+.history-body.open { display: block; }
 
 /* ====== Panel ====== */
 .panel {
@@ -342,42 +363,25 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.5; }
 
 <div class="app-body">
 
-  <!-- LEFT: Floor Plan -->
-  <div class="panel">
+  <!-- RIGHT: Floor Plan (開発中) -->
+  <div class="panel floor-panel">
     <div class="panel-head">
       <span>平面図</span>
-      <button class="btn btn-sm btn-danger" id="clearBtn" style="display:none" onclick="clearFile()">クリア</button>
+      <span class="dev-badge">🚧 開発中</span>
     </div>
-    <div class="panel-body" style="padding:10px; overflow:hidden;">
-      <div id="uploadZone" class="upload-zone"
-           onclick="document.getElementById('fileInput').click()"
-           ondragover="onDragOver(event)" ondrop="onDrop(event)" ondragleave="onDragLeave(event)">
-        <div class="icon">📐</div>
-        <div class="label">平面図をドロップ</div>
-        <div class="sub">または クリックして選択</div>
-        <div class="sub" style="font-size:11px; margin-top:4px;">PDF / PNG / JPG 対応</div>
-      </div>
-      <div id="viewerWrap" class="viewer-wrap"></div>
+    <div class="panel-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;color:var(--muted);">
+      <div style="font-size:48px;opacity:0.2;">📐</div>
+      <div style="font-size:11px;font-weight:600;line-height:1.6;">平面図の自動読み取りは<br>現在開発中です</div>
+      <div style="font-size:10px;opacity:0.7;">PDF / PNG / JPG 対応予定</div>
     </div>
-    <div class="panel-footer" style="flex-direction:column;gap:8px;align-items:stretch;">
-      <div style="display:flex;gap:8px;align-items:center;">
-        <div class="field" style="flex:1;">
-          <label>Claude API Key（自動読み取り用）</label>
-          <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." oninput="sessionStorage.setItem('xray_apikey',this.value)">
-        </div>
-      </div>
-      <button id="aiReadBtn" class="btn btn-primary" style="display:none;width:100%;justify-content:center;opacity:0.45;cursor:not-allowed;" disabled title="準備中">
-        🤖 AIで寸法を自動読み取り（準備中）
-      </button>
-    </div>
-    <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg" style="display:none" onchange="onFileSelect(event)">
   </div>
 
-  <!-- RIGHT: Input + Results -->
-  <div class="panel">
+  <!-- LEFT: Input + Results + History -->
+  <div class="panel main-panel">
     <div class="tabs">
       <button class="tab-btn active" onclick="showTab('input', this)">部屋情報入力</button>
       <button class="tab-btn" onclick="showTab('results', this)">計算結果</button>
+      <button class="tab-btn" onclick="showTab('history', this); renderHistory()">履歴</button>
     </div>
 
     <!-- INPUT TAB -->
@@ -414,6 +418,20 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.5; }
       <div class="panel-footer">
         <button class="btn btn-outline" onclick="copyFormulas()">📋 計算式をコピー</button>
         <button class="btn btn-outline btn-sm" onclick="copyTable()">📋 表をコピー</button>
+      </div>
+    </div>
+
+    <!-- HISTORY TAB -->
+    <div id="tab-history" class="tab-pane">
+      <div class="panel-body" id="historyBody">
+        <div class="empty-state">
+          <div class="icon">🕐</div>
+          <div class="label">履歴がありません</div>
+          <div style="font-size:12px;margin-top:4px;">計算実行のたびに自動保存されます</div>
+        </div>
+      </div>
+      <div class="panel-footer">
+        <button class="btn btn-outline btn-sm" style="color:var(--danger);" onclick="clearHistory()">🗑 履歴を全削除</button>
       </div>
     </div>
 
@@ -559,7 +577,7 @@ function buildRoomHTML(id) {
         </label>
         <label>
           <input type="radio" name="ctype-${id}" value="irrad" onchange="onCalcTypeChange(${id})">
-          照射面(B面)あり
+          照射面あり
         </label>
       </div>
     </div>
@@ -858,6 +876,7 @@ function runCalc() {
     });
   });
 
+  saveHistory(results);
   renderResults(results);
   // Switch to results tab
   document.querySelectorAll('.tab-btn')[1].click();
@@ -944,6 +963,87 @@ function copyTable() {
       r.needFloor ? F3(r.floorArea) : '不要'
     ].join('\t'));
   navigator.clipboard.writeText([header, ...rows].join('\n')).then(() => showToast('表をコピーしました ✓'));
+}
+
+// ===================== History =====================
+function saveHistory(results) {
+  const valid = results.filter(r => !r.error);
+  if (!valid.length) return;
+  const history = JSON.parse(localStorage.getItem('xray_history') || '[]');
+  const now = new Date();
+  const label = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  history.unshift({
+    ts: now.getTime(),
+    label,
+    rooms: valid.map(r => ({
+      name: r.name, ctype: r.ctype,
+      wall: r.wall, wallB: r.wallB,
+      ceilArea: r.ceilArea, floorArea: r.floorArea,
+      needCeil: r.needCeil, needFloor: r.needFloor,
+      formula: r.formula
+    }))
+  });
+  if (history.length > 30) history.length = 30;
+  localStorage.setItem('xray_history', JSON.stringify(history));
+}
+
+function renderHistory() {
+  const history = JSON.parse(localStorage.getItem('xray_history') || '[]');
+  const body = document.getElementById('historyBody');
+  if (!history.length) {
+    body.innerHTML = `<div class="empty-state"><div class="icon">🕐</div><div class="label">履歴がありません</div><div style="font-size:12px;margin-top:4px;">計算実行のたびに自動保存されます</div></div>`;
+    return;
+  }
+  body.innerHTML = history.map((entry, hi) => {
+    const roomNames = entry.rooms.map(r => r.name).join('、');
+    const tableRows = entry.rooms.map(r => {
+      const ceil  = r.needCeil  ? F2(r.ceilArea)  : '不要';
+      const floor = r.needFloor ? F2(r.floorArea) : '不要';
+      const irrad = r.ctype === 'irrad' ? F2(r.wallB) : '—';
+      return `<tr><td><strong>${esc(r.name)}</strong></td><td class="num">${F2(r.wall)}</td><td>${irrad}</td><td>${ceil}</td><td>${floor}</td></tr>`;
+    }).join('');
+    const formulaHtml = entry.rooms.map(r => {
+      const fHtml = r.formula.map(item => {
+        const t = esc(item.text);
+        return item.underline ? `<u>${t}</u>` : t;
+      }).join('\n');
+      return `<div class="formula-room-title" style="margin-top:10px;">${esc(r.name)}</div><div class="formula-block" style="font-size:10.5px;">${fHtml}</div>`;
+    }).join('');
+    return `<div class="history-entry">
+      <div class="history-head" onclick="toggleHistory(${hi})">
+        <span class="history-ts">${esc(entry.label)}</span>
+        <span class="history-rooms">${esc(roomNames)}</span>
+        <button class="btn btn-outline btn-sm" style="font-size:10px;" onclick="event.stopPropagation();copyHistoryFormulas(${hi})">📋 コピー</button>
+      </div>
+      <div class="history-body" id="hbody-${hi}">
+        <table class="result-table" style="margin-bottom:8px;">
+          <thead><tr><th>部屋名</th><th>壁面</th><th>照射面B</th><th>天井</th><th>床</th></tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+        ${formulaHtml}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleHistory(hi) {
+  const body = document.getElementById(`hbody-${hi}`);
+  body.classList.toggle('open');
+}
+
+function copyHistoryFormulas(hi) {
+  const history = JSON.parse(localStorage.getItem('xray_history') || '[]');
+  const entry = history[hi];
+  if (!entry) return;
+  const text = entry.rooms.map(r => r.formula.map(item => item.text).join('\n')).join('\n\n' + '─'.repeat(50) + '\n\n');
+  navigator.clipboard.writeText(text).then(() => showToast('履歴の計算式をコピーしました ✓'));
+}
+
+function clearHistory() {
+  if (!confirm('履歴をすべて削除しますか？')) return;
+  localStorage.removeItem('xray_history');
+  renderHistory();
+  showToast('履歴を削除しました');
 }
 
 // ===================== Excel Copy =====================
