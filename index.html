@@ -51,14 +51,12 @@ header .sub { font-size: 11px; opacity: 0.75; margin-left: auto; }
 
 .app-body {
   display: grid;
-  grid-template-columns: 1fr 220px;
+  grid-template-columns: 1fr 1fr;
   flex: 1;
   overflow: hidden;
   padding: 12px;
   gap: 12px;
 }
-.main-panel { grid-column: 1; }
-.floor-panel { grid-column: 2; }
 .dev-badge {
   display: inline-flex; align-items: center; gap: 3px;
   background: #fef3c7; color: #92400e;
@@ -363,19 +361,6 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.5; }
 
 <div class="app-body">
 
-  <!-- RIGHT: Floor Plan (開発中) -->
-  <div class="panel floor-panel">
-    <div class="panel-head">
-      <span>平面図</span>
-      <span class="dev-badge">🚧 開発中</span>
-    </div>
-    <div class="panel-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;color:var(--muted);">
-      <div style="font-size:48px;opacity:0.2;">📐</div>
-      <div style="font-size:11px;font-weight:600;line-height:1.6;">平面図の自動読み取りは<br>現在開発中です</div>
-      <div style="font-size:10px;opacity:0.7;">PDF / PNG / JPG 対応予定</div>
-    </div>
-  </div>
-
   <!-- LEFT: Input + Results + History -->
   <div class="panel main-panel">
     <div class="tabs">
@@ -436,6 +421,20 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.5; }
     </div>
 
   </div>
+
+  <!-- RIGHT: Floor Plan (開発中) -->
+  <div class="panel floor-panel">
+    <div class="panel-head">
+      <span>平面図</span>
+      <span class="dev-badge">🚧 開発中</span>
+    </div>
+    <div class="panel-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;color:var(--muted);">
+      <div style="font-size:56px;opacity:0.15;">📐</div>
+      <div style="font-size:13px;font-weight:600;line-height:1.7;">平面図の自動読み取りは<br>現在開発中です</div>
+      <div style="font-size:11px;opacity:0.65;">PDF / PNG / JPG 対応予定</div>
+    </div>
+  </div>
+
 </div>
 
 <div class="toast" id="toast"></div>
