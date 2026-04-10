@@ -363,7 +363,7 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.5; }
       <div style="display:flex;gap:8px;align-items:center;">
         <div class="field" style="flex:1;">
           <label>Claude API Key（自動読み取り用）</label>
-          <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." oninput="localStorage.setItem('xray_apikey',this.value)">
+          <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." oninput="sessionStorage.setItem('xray_apikey',this.value)">
         </div>
       </div>
       <button id="aiReadBtn" class="btn btn-primary" style="display:none;width:100%;justify-content:center;opacity:0.45;cursor:not-allowed;" disabled title="準備中">
@@ -433,7 +433,7 @@ const toM = v => Math.ceil(v / 10) / 100;
 
 // Restore API key + auto-add first room
 window.addEventListener('DOMContentLoaded', () => {
-  const saved = localStorage.getItem('xray_apikey');
+  const saved = sessionStorage.getItem('xray_apikey');
   if (saved) document.getElementById('apiKeyInput').value = saved;
   addRoom();
 });
